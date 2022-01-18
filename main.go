@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"os"
 	"strconv"
@@ -11,7 +12,15 @@ var (
 	port = flag.Int("port", 8080, "please input the server port")
 )
 
+var (
+	Token = flag.String("token", "123456","Set private password")
+)
+
 var Url = " "
+var UploadPath = "./upload"
+
+//将静态文件打包进二进制程序内
+var fs embed.FS
 
 func main() {
 
