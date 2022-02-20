@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os/exec"
@@ -47,4 +48,32 @@ func getIp() (ip string) {
 		}
 	}
 	return
+}
+
+var sizeKB = 1024
+var sizeMB = sizeKB * 1024
+var sizeGB = sizeMB * 1024
+var sizeTB = sizeGB * 1024
+
+//将文件大小字节转换为KB、MB形式
+func Bytes2Size(num int64) string {
+	numS := ""
+	unit := "B"
+	if num/int64(sizeTB) >= 1 {
+		numS = fmt.Sprintf("%f", float64(num)/float64(sizeTB))
+		unit = "TB"
+	} else if num/int64(sizeGB) >= 1 {
+		numS = fmt.Sprintf("%f", float64(num)/float64(sizeGB))
+		unit = "GB"
+	} else if num/int64(sizeMB) >= 1 {
+		numS = fmt.Sprintf("%f", float64(num)/float64(sizeMB))
+		unit = "MB"
+	} else if num/int64(sizeKB) >= 1 {
+		numS = fmt.Sprintf("%f", float64(num)/float64(sizeKB))
+		unit = "KB"
+	} else {
+		numS = fmt.Sprintf("%d", num)
+	}
+	numS = strings.Split(numS, ".")[0]
+	return numS + " " + unit
 }

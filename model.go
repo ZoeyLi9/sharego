@@ -14,10 +14,19 @@ type File struct {
 	Filename        string `json:"filename" gorm:"type:string"` //gorm框架指定数据库字段的数据类型
 	Description     string `json:"description" gorm:"type:string"`
 	Uploader        string `json:"uploader" gorm:"type:string"`
-	Path            string `json:"path" gorm:"type:string unique"` //unique关键字表示唯一，路径不能重复
+	Link            string `json:"link" gorm:"type:string unique"` //unique关键字表示唯一，路径不能重复
 	Time            string `json:"time" gorm:"type:string"`
 	DownloadCounter int    `json:"download_counter" gorm:"type:int"`
 	IsLocalFile     bool   `json:"is_local_file" gorm:"type:bool"`
+}
+
+//用来浏览本地文件信息结构
+type LocalFile struct {
+	Name     string
+	Path     string
+	Size     string
+	IsFolder bool
+	ModiTime string
 }
 
 //实体化一个新的数据库
@@ -28,7 +37,7 @@ func InitDB() (*gorm.DB, error) {
 	db, err := gorm.Open("sqlite3", "./.sharego.db") //打开一个数据库连接，若没有，则新建一个数据库文件
 	if err == nil {                                  //如果没有报错
 		DB = db
-		DB.AutoMigrate(&File{}) //增量转移
+		db.AutoMigrate(&File{}) //增量转移
 		return DB, err
 	} else {
 		log.Fatal(err)
@@ -49,7 +58,7 @@ func (file *File) Delete() error {
 	err = DB.Delete(file).Error
 	//删除本地文件
 	if !file.IsLocalFile {
-		err = os.Remove("." + file.Path)
+		err = os.Remove("." + file.Link)
 	}
 	return err
 }

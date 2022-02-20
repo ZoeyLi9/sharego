@@ -4,8 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"io/ioutil"
 	"net/http"
+	"net/url"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -54,7 +58,7 @@ func UploadFile(ctx *gin.Context) {
 	if uploader == "" {
 		uploader = "Unknown User"
 	}
-	current := time.Now().Format("2006-01-02 21:50:14")
+	current := time.Now().Format("2006/01/02 15:04:05")
 
 	//使用gin实现多文件上传
 	form, err := ctx.MultipartForm()
@@ -80,7 +84,7 @@ func UploadFile(ctx *gin.Context) {
 			Uploader:    uploader,
 			Time:        current,
 			Filename:    filename,
-			Path:        path,
+			Link:        path,
 		}
 		err = fileObject.Insert()
 		if err != nil {
@@ -95,7 +99,7 @@ func UploadFile(ctx *gin.Context) {
 func DeleteFile(ctx *gin.Context) {
 	var delreq DeleteRequest
 	//对字符串进行解码
-	err := json.NewDecoder(ctx.Request.Body).Decode(delreq)
+	err := json.NewDecoder(ctx.Request.Body).Decode(&delreq)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
@@ -110,7 +114,7 @@ func DeleteFile(ctx *gin.Context) {
 		fileObject := &File{
 			Id: delreq.Id,
 		}
-		DB.Where("Id = ?", delreq.Id).First(&fileObject)
+		DB.Where("id = ?", delreq.Id).First(&fileObject)
 		//删除文件和记录
 		err := fileObject.Delete()
 		if err != nil {
@@ -130,9 +134,79 @@ func DeleteFile(ctx *gin.Context) {
 			})
 		}
 	} else {
-		ctx.JSON(http.StatusOK,gin.H{
-			"success": true,
+		ctx.JSON(http.StatusOK, gin.H{
+			"success": false,
 			"message": "Invalid password",
 		})
+	}
+}
+
+//浏览文件功能控制
+func GetExplorerFile(ctx *gin.Context) {
+	var localFiles []LocalFile
+	var localf []LocalFile
+
+	path := ctx.DefaultQuery("path", "/")
+	path, _ = url.QueryUnescape(path)
+
+	//获取根路径
+	rootpath := filepath.Join(LocalRoot, path)
+	root, err := os.Stat(rootpath)
+	if err != nil {
+		ctx.HTML(http.StatusBadRequest, "error.html", gin.H{
+			"message": err.Error(),
+		})
+	}
+	//如果获取到的文件状态是文件夹
+	if root.IsDir() {
+		files, err := ioutil.ReadDir(rootpath)
+		if err != nil {
+			ctx.HTML(http.StatusBadRequest, "error.html", gin.H{
+				"message": err.Error(),
+			})
+		}
+
+		if path != "/" {
+			pathPart := strings.Split(path, "/")
+			if len(pathPart) > 0 {
+				pathPart = pathPart[:len(pathPart)-1]
+			}
+			//定义上一级的父文件夹
+			parentPath := strings.Join(pathPart, "/")
+			parentFile := LocalFile{
+				Name:     "..",
+				Path:     "explorer?path=" + url.QueryEscape(parentPath),
+				Size:     "",
+				IsFolder: true,
+				ModiTime: "",
+			}
+			localFiles = append(localFiles, parentFile)
+			path = strings.Trim(path, "/") + "/"
+		} else {
+			path = ""
+		}
+		//返回单个文件信息
+		for _, fi := range files {
+			file := LocalFile{
+				Name:     fi.Name(),
+				Path:     "explorer?path=" + url.QueryEscape(path+fi.Name()),
+				Size:     Bytes2Size(fi.Size()),
+				IsFolder: fi.Mode().IsDir(),
+				ModiTime: fi.ModTime().String()[:19],
+			}
+			if file.IsFolder { //如果该文件是个文件夹
+				localFiles = append(localFiles, file)
+			} else {
+				localf = append(localf, file)
+			}
+		}
+		//合并所有文件夹和文件
+		localFiles = append(localFiles, localf...)
+		ctx.HTML(http.StatusOK, "explorer.html", gin.H{
+			"message": "",
+			"files":   localFiles,
+		})
+	} else {
+		ctx.File(filepath.Join(LocalRoot, path))
 	}
 }
