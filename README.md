@@ -34,6 +34,6 @@
 
    
 
-   ![index](D:\go\sharego\index.png)
+   ![index](./screenshot/index.png)
 
-![explorer](D:\go\sharego\explorer.png)
+![explorer](./screenshot/explorer.png)
