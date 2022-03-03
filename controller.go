@@ -22,7 +22,7 @@ type DeleteRequest struct {
 
 //定义首页以及查询功能
 func GetIndex(ctx *gin.Context) {
-	query := ctx.Query("search") //路由后定义的关键字
+	query := ctx.Query("search") //路由后定义的关键字。获取搜索内容
 
 	//定义查询控制功能
 	files, _ := Query(query)
@@ -143,11 +143,11 @@ func DeleteFile(ctx *gin.Context) {
 
 //浏览文件功能控制
 func GetExplorerFile(ctx *gin.Context) {
-	var localFiles []LocalFile
-	var localf []LocalFile
+	var localFiles []LocalFile //文件夹数组
+	var localf []LocalFile //文件数组
 
 	path := ctx.DefaultQuery("path", "/")
-	path, _ = url.QueryUnescape(path)
+	path, _ = url.QueryUnescape(path) //还原转码后的字符串
 
 	//获取根路径
 	rootpath := filepath.Join(LocalRoot, path)
@@ -175,13 +175,13 @@ func GetExplorerFile(ctx *gin.Context) {
 			parentPath := strings.Join(pathPart, "/")
 			parentFile := LocalFile{
 				Name:     "..",
-				Path:     "explorer?path=" + url.QueryEscape(parentPath),
+				Path:     "explorer?path=" + url.QueryEscape(parentPath), //对字符串转码，进行安全的url查询
 				Size:     "",
 				IsFolder: true,
 				ModiTime: "",
 			}
 			localFiles = append(localFiles, parentFile)
-			path = strings.Trim(path, "/") + "/"
+			path = strings.Trim(path, "/") + "/" //把首尾的斜杠去掉，最后再加一个。因为path=那不能有斜杠
 		} else {
 			path = ""
 		}
